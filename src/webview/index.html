@@ -2,13 +2,48 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AutoTerm</title>
-  <link rel="stylesheet" href="styles.css">
+  <title>AutoTerm | Create Env</title>
 </head>
 <body>
-  <h1>Hello from AutoTerm!</h1>
-  <button id="clickMe">Click Me</button>
-  <script src="/home/sikehish/CodeFiles/autoterm/dist/script.js"></script>
+  <div class="container">
+      <header>
+          <h1>AutoTerm | <span>Create Env</span></h1>
+      </header>
+      <main>
+          <label for="env-name">Env Name:</label>
+          <input type="text" id="env-name" placeholder="Enter environment name">
+          
+          <button class="add-terminal">+ Add Terminal</button>
+          
+          <div class="terminal">
+              <h2>Terminal 1</h2>
+              <label>Name:</label>
+              <input type="text" placeholder="Enter terminal name">
+              <label>Path:</label>
+              <input type="text" placeholder="Pick path">
+              <label>Startup Command:</label>
+              <input type="text" placeholder="Enter command">
+              <label>ENV Vars:</label>
+              <button class="add-env">+ Add ENV Var</button>
+          </div>
+          
+          <div class="terminal">
+              <h2>Terminal 2</h2>
+              <label>Name:</label>
+              <input type="text" placeholder="Enter terminal name">
+              <label>Path:</label>
+              <input type="text" placeholder="Pick path">
+              <label>Startup Command:</label>
+              <input type="text" placeholder="Enter command">
+              <label>ENV Vars:</label>
+              <button class="add-env">+ Add ENV Var</button>
+          </div>
+          
+          <div class="persist-logs">
+              <label>Do you want to persist logs corresponding to terminals of each env?</label>
+              <input type="checkbox" checked>
+          </div>
+      </main>
+  </div>
 </body>
 </html>

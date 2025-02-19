@@ -37,18 +37,9 @@ export function activate(context: vscode.ExtensionContext) {
 export function deactivate() {}
 
 function getWebviewContent(scriptUri: vscode.Uri, styleUri: vscode.Uri): string {
-  return `<!DOCTYPE html>
-  <html lang="en">
-  <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AutoTerm</title>
-    <link rel="stylesheet" href="${styleUri}">
-  </head>
-  <body>
-    <h1>Hello from AutoTerm!</h1>
-    <button id="clickMe">Click Me</button>
-    <script src="${scriptUri}"></script>
-  </body>
-  </html>`;
+  const html_to_send = fs.readFileSync(
+   '/Users/afnan/Developer/autoterm/src/webview/index.html',
+    'utf8'
+  );
+  return html_to_send;
 }
