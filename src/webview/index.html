@@ -3,47 +3,107 @@
 <head>
   <meta charset="UTF-8">
   <title>AutoTerm | Create Env</title>
+  <style>
+    .container { width: 50%; margin: auto; font-family: Arial, sans-serif; }
+    .terminal { border: 1px solid #ccc; padding: 10px; margin: 10px 0; position: relative; }
+    .remove-terminal { position: absolute; top: 5px; right: 10px; cursor: pointer; color: red; font-weight: bold; }
+    button { margin: 10px 0; }
+  </style>
 </head>
 <body>
   <div class="container">
-      <header>
-          <h1>AutoTerm | <span>Create Env</span></h1>
-      </header>
-      <main>
-          <label for="env-name">Env Name:</label>
-          <input type="text" id="env-name" placeholder="Enter environment name">
-          
-          <button class="add-terminal">+ Add Terminal</button>
-          
-          <div class="terminal">
-              <h2>Terminal 1</h2>
-              <label>Name:</label>
-              <input type="text" placeholder="Enter terminal name">
-              <label>Path:</label>
-              <input type="text" placeholder="Pick path">
-              <label>Startup Command:</label>
-              <input type="text" placeholder="Enter command">
-              <label>ENV Vars:</label>
-              <button class="add-env">+ Add ENV Var</button>
-          </div>
-          
-          <div class="terminal">
-              <h2>Terminal 2</h2>
-              <label>Name:</label>
-              <input type="text" placeholder="Enter terminal name">
-              <label>Path:</label>
-              <input type="text" placeholder="Pick path">
-              <label>Startup Command:</label>
-              <input type="text" placeholder="Enter command">
-              <label>ENV Vars:</label>
-              <button class="add-env">+ Add ENV Var</button>
-          </div>
-          
-          <div class="persist-logs">
-              <label>Do you want to persist logs corresponding to terminals of each env?</label>
-              <input type="checkbox" checked>
-          </div>
-      </main>
+    <header>
+      <h1>AutoTerm | <span>Create Env</span></h1>
+    </header>
+
+    <main>
+      <label for="env-name">Env Name:</label>
+      <input type="text" id="env-name" placeholder="Enter environment name">
+
+      <button id="add-terminal">+ Add Terminal</button>
+
+      <div id="terminal-container"></div>
+
+      <div class="persist-logs">
+        <label>Do you want to persist logs corresponding to terminals of each env?</label>
+        <input type="checkbox" checked>
+      </div>
+
+      <button id="save">Save</button>
+    </main>
   </div>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const vscode = acquireVsCodeApi(); 
+      const addTerminalBtn = document.getElementById("add-terminal");
+      const terminalContainer = document.getElementById("terminal-container");
+      const saveBtn = document.getElementById("save");
+
+      function createTerminal() {
+        const terminalDiv = document.createElement("div");
+        terminalDiv.classList.add("terminal");
+
+        terminalDiv.innerHTML = `
+          <span class="remove-terminal">❌</span>
+          <h2></h2>
+          <label>Name:</label>
+          <input type="text" class="terminal-name required" placeholder="Enter terminal name">
+          <label>Path:</label>
+          <input type="text" class="terminal-path required" placeholder="Pick path">
+          <label>Startup Command:</label>
+          <input type="text" class="terminal-command" placeholder="Enter command">
+          <label>ENV Vars:</label>
+          <button class="add-env">+ Add ENV Var</button>
+        `;
+
+        terminalContainer.appendChild(terminalDiv);
+        updateTerminalNumbers();
+        checkInputsAndEnableAdd();
+      }
+
+      function updateTerminalNumbers() {
+        document.querySelectorAll(".terminal").forEach((terminal, index) => {
+          terminal.querySelector("h2").textContent = `Terminal ${index + 1}`;
+        });
+      }
+
+      function checkInputsAndEnableAdd() {
+        const terminals = document.querySelectorAll(".terminal");
+        if (terminals.length === 0 || Array.from(terminals).every(terminal => {
+          return Array.from(terminal.querySelectorAll(".required")).every(input => input.value.trim() !== "");
+        })) {
+          addTerminalBtn.disabled = false;
+        } else {
+          addTerminalBtn.disabled = true;
+        }
+      }
+
+      addTerminalBtn.addEventListener("click", () => {
+        createTerminal();
+        addTerminalBtn.disabled = true;
+      });
+
+      terminalContainer.addEventListener("input", checkInputsAndEnableAdd);
+
+      terminalContainer.addEventListener("click", (event) => {
+        if (event.target.classList.contains("remove-terminal")) {
+          event.target.parentElement.remove();
+          updateTerminalNumbers();
+          checkInputsAndEnableAdd();
+        }
+      });
+
+      saveBtn.addEventListener("click", () => {
+        const terminalsData = Array.from(document.querySelectorAll(".terminal")).map((terminal, index) => ({
+          id: index + 1,
+          name: terminal.querySelector(".terminal-name").value,
+          path: terminal.querySelector(".terminal-path").value,
+          command: terminal.querySelector(".terminal-command").value
+        }));
+        vscode.postMessage({ command: "saveTerminals", data: terminalsData });
+      });
+    });
+  </script>
 </body>
 </html>
