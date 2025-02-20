@@ -2,51 +2,88 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>AutoTerm | Create Env</title>
+  <title>AutoTerm | Configure Project</title>
   <style>
     .container { width: 50%; margin: auto; font-family: Arial, sans-serif; }
-    .terminal { border: 1px solid #ccc; padding: 10px; margin: 10px 0; position: relative; }
-    .remove-terminal { position: absolute; top: 5px; right: 10px; cursor: pointer; color: red; font-weight: bold; }
+    .env-container, .terminal { border: 1px solid #ccc; padding: 10px; margin: 10px 0; position: relative; }
+    .remove-env, .remove-terminal, .remove-env-var { cursor: pointer; color: red; font-weight: bold; }
+    .remove-env { position: absolute; top: 5px; right: 10px; }
+    .remove-terminal { float: right; }
     button { margin: 10px 0; }
+    .terminal-container { padding-left: 10px; border-left: 2px solid #aaa; margin-top: 10px; }
   </style>
 </head>
 <body>
   <div class="container">
     <header>
-      <h1>AutoTerm | <span>Create Env</span></h1>
+      <h1>AutoTerm | Project Configuration</h1>
     </header>
 
     <main>
-      <label for="env-name">Env Name:</label>
-      <input type="text" id="env-name" placeholder="Enter environment name">
 
-      <button id="add-terminal">+ Add Terminal</button>
+      <button id="add-env">+ Add Environment</button>
 
-      <div id="terminal-container"></div>
+      <div id="env-container"></div>
 
       <div class="persist-logs">
-        <label>Do you want to persist logs corresponding to terminals of each env?</label>
-        <input type="checkbox" checked>
+        <label>Enable logging?</label>
+        <input type="checkbox" id="enable-logging" checked>
       </div>
 
-      <button id="save">Save</button>
+      <button id="save">Save Configuration</button>
     </main>
   </div>
 
   <script>
     document.addEventListener("DOMContentLoaded", () => {
-      const vscode = acquireVsCodeApi(); 
-      const addTerminalBtn = document.getElementById("add-terminal");
-      const terminalContainer = document.getElementById("terminal-container");
+      const vscode = acquireVsCodeApi();
+      console.log(vscode)
+      const envContainer = document.getElementById("env-container");
+      const addEnvBtn = document.getElementById("add-env");
       const saveBtn = document.getElementById("save");
 
-      function createTerminal() {
+      function createEnv() {
+        const envDiv = document.createElement("div");
+        envDiv.classList.add("env-container");
+
+        envDiv.innerHTML = `
+          <span class="remove-env">❌</span>
+          <h2></h2>
+          <label>Env Name:</label>
+          <input type="text" class="env-name required" placeholder="Enter environment name">
+          <label>Set as Default?</label>
+          <input type="radio" name="default-env" class="default-env">
+          <button class="add-terminal">+ Add Terminal</button>
+          <div class="terminal-container"></div>
+        `;
+
+        envContainer.appendChild(envDiv);
+        updateEnvNumbers();
+        checkInputsAndEnableAdd();
+
+        envDiv.querySelector(".add-terminal").addEventListener("click", () => createTerminal(envDiv));
+        envDiv.querySelector(".default-env").addEventListener("change", () => updateDefaultSelection(envDiv));
+      }
+
+      function updateEnvNumbers() {
+        document.querySelectorAll(".env-container").forEach((env, index) => {
+          env.querySelector("h2").textContent = `Environment ${index + 1}`;
+        });
+      }
+
+      function updateDefaultSelection(selectedEnv) {
+        document.querySelectorAll(".default-env").forEach(radio => {
+          radio.checked = (radio.closest(".env-container") === selectedEnv);
+        });
+      }
+
+      function createTerminal(envDiv) {
         const terminalDiv = document.createElement("div");
         terminalDiv.classList.add("terminal");
 
         terminalDiv.innerHTML = `
           <span class="remove-terminal">❌</span>
-          <h2></h2>
+          <h3></h3>
           <label>Name:</label>
           <input type="text" class="terminal-name required" placeholder="Enter terminal name">
           <label>Path:</label>
@@ -54,55 +91,157 @@
           <label>Startup Command:</label>
           <input type="text" class="terminal-command" placeholder="Enter command">
           <label>ENV Vars:</label>
-          <button class="add-env">+ Add ENV Var</button>
+          <button class="add-env-var">+ Add ENV Var</button>
+          <div class="env-vars"></div>
         `;
 
-        terminalContainer.appendChild(terminalDiv);
-        updateTerminalNumbers();
+        envDiv.querySelector(".terminal-container").appendChild(terminalDiv);
+        updateTerminalNumbers(envDiv);
         checkInputsAndEnableAdd();
+
+        terminalDiv.querySelector(".add-env-var").addEventListener("click", () => createEnvVar(terminalDiv));
       }
 
-      function updateTerminalNumbers() {
-        document.querySelectorAll(".terminal").forEach((terminal, index) => {
-          terminal.querySelector("h2").textContent = `Terminal ${index + 1}`;
+      function updateTerminalNumbers(envDiv) {
+        envDiv.querySelectorAll(".terminal").forEach((terminal, index) => {
+          terminal.querySelector("h3").textContent = `Terminal ${index + 1}`;
         });
       }
 
+      function createEnvVar(terminalDiv) {
+        const envVarDiv = document.createElement("div");
+
+        envVarDiv.innerHTML = `
+          <label>Key:</label>
+          <input type="text" class="env-key required" placeholder="Enter key">
+          <label>Value:</label>
+          <input type="text" class="env-value required" placeholder="Enter value">
+          <span class="remove-env-var">❌</span>
+        `;
+
+        terminalDiv.querySelector(".env-vars").appendChild(envVarDiv);
+      }
+
       function checkInputsAndEnableAdd() {
-        const terminals = document.querySelectorAll(".terminal");
-        if (terminals.length === 0 || Array.from(terminals).every(terminal => {
-          return Array.from(terminal.querySelectorAll(".required")).every(input => input.value.trim() !== "");
+        const envs = document.querySelectorAll(".env-container");
+        if (envs.length === 0 || Array.from(envs).every(env => {
+          return env.querySelector(".env-name").value.trim() !== "" &&
+            Array.from(env.querySelectorAll(".terminal")).every(terminal => {
+              return terminal.querySelector(".terminal-name").value.trim() !== "" &&
+                     terminal.querySelector(".terminal-path").value.trim() !== "";
+            });
         })) {
-          addTerminalBtn.disabled = false;
+          addEnvBtn.disabled = false;
         } else {
-          addTerminalBtn.disabled = true;
+          addEnvBtn.disabled = true;
         }
       }
 
-      addTerminalBtn.addEventListener("click", () => {
-        createTerminal();
-        addTerminalBtn.disabled = true;
-      });
+      envContainer.addEventListener("input", checkInputsAndEnableAdd);
 
-      terminalContainer.addEventListener("input", checkInputsAndEnableAdd);
-
-      terminalContainer.addEventListener("click", (event) => {
-        if (event.target.classList.contains("remove-terminal")) {
+      envContainer.addEventListener("click", (event) => {
+        if (event.target.classList.contains("remove-env")) {
           event.target.parentElement.remove();
-          updateTerminalNumbers();
+          updateEnvNumbers();
           checkInputsAndEnableAdd();
+        } else if (event.target.classList.contains("remove-terminal")) {
+          event.target.parentElement.remove();
+          checkInputsAndEnableAdd();
+        } else if (event.target.classList.contains("remove-env-var")) {
+          event.target.parentElement.remove();
         }
       });
 
-      saveBtn.addEventListener("click", () => {
-        const terminalsData = Array.from(document.querySelectorAll(".terminal")).map((terminal, index) => ({
-          id: index + 1,
-          name: terminal.querySelector(".terminal-name").value,
-          path: terminal.querySelector(".terminal-path").value,
-          command: terminal.querySelector(".terminal-command").value
-        }));
-        vscode.postMessage({ command: "saveTerminals", data: terminalsData });
+      addEnvBtn.addEventListener("click", () => {
+        createEnv();
+        addEnvBtn.disabled = true;
       });
+
+      saveBtn.addEventListener("click", async () => {
+        
+        vscode.postMessage({ command: "getWorkspaceFolders" });
+
+const projectPath = await new Promise((resolve) => {
+    window.addEventListener("message", function handler(event) {
+        if (event.data.command === "workspaceFolders") {
+            resolve(event.data.workspaceFolders?.[0] || "");
+            window.removeEventListener("message", handler); 
+        }
+    });
+});
+
+console.log("Workspace Folder Path:", projectPath);
+
+    const enableLogging = document.getElementById("enable-logging").checked;
+    
+    const envContainers = document.querySelectorAll(".env-container");
+    if (envContainers.length === 0) {
+        vscode.postMessage({ command: "showError",message: "At least one environment is required."});
+        return;
+    }
+
+    let hasError = false;
+
+    const envsData = Array.from(envContainers).map((env, index) => {
+        const envName = env.querySelector(".env-name").value.trim();
+        if (!envName) {
+            vscode.postMessage({ command: "showError",message: `Environment ${index + 1}: Name is required.`});
+            hasError = true;
+        }
+
+        const terminals = Array.from(env.querySelectorAll(".terminal")).map((terminal, termIndex) => {
+            const name = terminal.querySelector(".terminal-name").value.trim();
+            const directory = terminal.querySelector(".terminal-path").value.trim();
+
+            if (!name) {
+                vscode.postMessage({ command: "showError", message: `Environment ${index + 1}, Terminal ${termIndex + 1}: Name is required.`});
+                hasError = true;
+            }
+            if (!directory) {
+               vscode.postMessage({ command: "showError",message :`Environment ${index + 1}, Terminal ${termIndex + 1}: Path is required.`});
+                hasError = true;
+            }
+
+            const envVars = Array.from(terminal.querySelectorAll(".env-vars div")).map(envVar => {
+                const key = envVar.querySelector(".env-key").value.trim();
+                const value = envVar.querySelector(".env-value").value.trim();
+                
+                if (!key || !value) {
+                   vscode.postMessage({ command: "showError",message: `Environment ${index + 1}, Terminal ${termIndex + 1}: ENV Variable Key and Value are required.`});
+                    hasError = true;
+                }
+
+                return [key, value];
+            });
+
+            return {
+                name,
+                directory,
+                startupCommand: terminal.querySelector(".terminal-command").value.trim(),
+                envVariables: Object.fromEntries(envVars),
+            };
+        });
+
+        if (terminals.length === 0) {
+            vscode.postMessage({ command: "showError",message: `Environment ${index + 1}: At least one terminal is required.`});
+            hasError = true;
+        }
+
+        return { envName, terminals };
+    });
+
+    if (hasError) return;
+
+    const defaultEnv = document.querySelector(".default-env:checked")?.closest(".env-container")?.querySelector(".env-name")?.value || "";
+
+    vscode.postMessage({
+        command: "saveConfig",
+        data: { projectPath, enableLogging, envs: envsData, defaultEnv }
+    });
+
+    vscode.window.showInformationMessage("Configuration saved successfully!");
+});
+
     });
   </script>
 </body>

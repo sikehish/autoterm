@@ -6,27 +6,42 @@ export function activate(context: vscode.ExtensionContext) {
     let disposable = vscode.commands.registerCommand("autoterm.openWebview", () => {
         const panel = vscode.window.createWebviewPanel(
             "autoterm",
-            "AutoTerm",
+            "AutoTerm | Configure Project",
             vscode.ViewColumn.One,
-            { enableScripts: true } 
-        );
-
-        const scriptUri = panel.webview.asWebviewUri(
-            vscode.Uri.file(path.join(context.extensionPath, "dist", "script.js"))
-        );
-
-        const styleUri = panel.webview.asWebviewUri(
-            vscode.Uri.file(path.join(context.extensionPath, "src", "webview", "styles.css"))
+            { enableScripts: true }
         );
 
         panel.webview.html = getWebviewContent(context);
 
         panel.webview.onDidReceiveMessage(
             (message) => {
-                if (message.command === "saveTerminals") {
-                  if(message.data.length === 0)  vscode.window.showErrorMessage("CAN'T HAVE 0 TERMINALS!")
-                  else vscode.window.showInformationMessage(`Saved ${message.data.length} ${((message.data.length)===1) ?'terminal!' :  'terminals!'} `);
-                    console.log("Received Terminals Data:", message.data);
+                if (message.command === "getWorkspaceFolders") {
+                    const workspaceFolders = vscode.workspace.workspaceFolders?.map(folder => folder.uri.fsPath) || [];
+                    
+                    panel.webview.postMessage({
+                        command: "workspaceFolders",
+                        workspaceFolders: workspaceFolders
+                    });
+                }
+                else if (message.command === "showError") {
+                    vscode.window.showErrorMessage(message.message);
+                }
+                else if (message.command === "saveConfig") {
+                    const { projectPath, enableLogging, envs, defaultEnv } = message.data;
+                    if (envs.length === 0) {
+                        vscode.window.showErrorMessage("At least one environment is required.");
+                        return;
+                    }
+
+                    const configData = {
+                        projectPath,
+                        enableLogging,
+                        environments: envs,
+                        defaultEnvironment: defaultEnv,
+                    };
+
+                    console.log("Configuration Saved:", configData);
+                    vscode.window.showInformationMessage("Configuration saved successfully!");
                 }
             },
             undefined,
@@ -40,9 +55,9 @@ export function activate(context: vscode.ExtensionContext) {
 export function deactivate() {}
 
 function getWebviewContent(context: vscode.ExtensionContext): string {
-    const html_to_send = fs.readFileSync(
+    let html = fs.readFileSync(
         path.join(context.extensionPath, "src", "webview", "index.html"),
         "utf8"
     );
-    return html_to_send;
+    return html;
 }
